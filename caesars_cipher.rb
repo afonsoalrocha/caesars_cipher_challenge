@@ -1,12 +1,12 @@
 require 'rubygems'
 require 'json'
 require 'rickshaw'
-require 'HTTParty'
-
-#https://apidock.com/ruby/Net/HTTP
+require 'net/http'
 
 #consumming the codenation's API to get JSON file
-get_response = HTTParty.get('https://api.codenation.dev/v1/challenge/dev-ps/generate-data?token=ba9c3a40a70664e44aebf97c426159152f93d62a')
+uri = URI('https://api.codenation.dev/v1/challenge/dev-ps/generate-data?token=ba9c3a40a70664e44aebf97c426159152f93d62a')
+
+get_response = Net::HTTP.get_response(uri)
 
 #saving the json file in an file called "answer.json"
 File.open("answer.json", 'w+') {|file| file.write(get_response.body)}
@@ -53,6 +53,24 @@ challenge['resumo_criptografico'] = sha1_summary
 
 solved_challenge = JSON.generate(challenge)
 
-File.open("answer.json", 'w+') {|f| f.write(solved_challenge)} 
+solved_file = File.open("answer.json", 'w+') {|file| file.write(solved_challenge)} 
 
 puts challenge
+
+# sending back file answer.json with the solved challenge
+
+post_uri = URI('https://api.codenation.dev/v1/challenge/dev-ps/generate-data')
+res = Net::HTTP.start(post_uri.hostname, post_uri.port, :use_ssl => true) do |http|
+    
+    req = Net::HTTP::Post.new(post_uri)
+
+    req.set_form_data('token' => 'ba9c3a40a70664e44aebf97c426159152f93d62a')
+
+    req.body = solved_file
+
+    req.content_type = 'multipart/form-data'
+
+    http.request(req)
+end
+
+puts res.code
